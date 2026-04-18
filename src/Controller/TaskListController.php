@@ -108,7 +108,7 @@ class TaskListController
     }
 
     #[Route(path: "/recent/{id}", name: "new", methods: ['GET'])]
-    public function show(Request $request, int $id): Response
+    public function recent(Request $request, int $id): Response
     {
         return new Response($this->templating->render(
             'tasks/recent.html.twig',
