@@ -4,9 +4,11 @@ PHP            = $(EXEC_APP) php
 CONSOLE        = $(PHP) bin/console
 COMPOSER       = $(EXEC_APP) composer
 
-.PHONY: build up down restart logs shell install migrate \
-        cleanup-tests prepare-tests run-all-tests run-stateless-tests test \
-        compile-assets
+default: help
+
+.PHONY: help
+help: # Show help for this make file
+	@grep -E '(^[a-zA-Z0-9 -]+.*#|^#########+(.*))'  Makefile | while read -r l; do printf "\033[1;32m$$(echo $$l: | sed -e 's/#########.*//g' | cut -f 1 -d':')\033[00m -$$(echo $$l | cut -f 2- -d'#')\n"; done
 
 build: ## Build the application image
 	$(DOCKER_COMPOSE) build
