@@ -1,45 +1,64 @@
 # Doctrine ORM: Deep Dive
 
-Installation (development)
---------------------------
+This project runs entirely in Docker. The app runs in a
+[FrankenPHP](https://frankenphp.dev) container (PHP 8.4 + Caddy, the reference
+setup used by the Symfony community), the database runs in a Postgres container.
 
-1. Install dependencies
-
-    ```bash
-   symfony composer install 
-   ``` 
-
-2. Start database
-
-    ```bash
-    docker-compose up -d
-    ```
-
-3. Run tests (also sets up fixtures!)
-
-    ```bash
-    php bin/phpunit
-    ```
-
-4. Start local web server
-
-    ```bash
-    symfony local:server:start --d
-    ```
-
-5. Open app in browser: localhost:8000
-
-Known issues
+Requirements
 ------------
 
-**Database port is already in use**
+- [Docker](https://docs.docker.com/get-docker/) incl. Docker Compose v2
+- `make` (optional, but recommended)
 
-You can modify the assigned port by changing the `docker-compose.yaml` or
-providing a `docker-compose.override.yaml` that will not be committed with
-your remaining changes.
+Installation
+------------
 
-**Using a local database instead of a service**
+1. Build the image and start the stack
 
-When using a local database make sure to provide a proper `DATABASE_URL` env var or update the default value in
-`.env`. You might also want to adjust the `config/packages/doctrine.yaml` in case you are using a different server
-version, e.g. MySQL 5.7 or MariaDB.
+   ```bash
+   make build
+   make up
+   ```
+
+2. Install PHP dependencies inside the container
+
+   ```bash
+   make install
+   ```
+
+3. Create the database schema
+
+   ```bash
+   make migrate
+   ```
+
+4. Open the app in your browser: <http://localhost:8000>
+
+Running tests
+-------------
+
+```bash
+make test                  # recreates the test DB and runs the full suite
+make run-stateless-tests   # only tests that do not need a DB reset
+```
+
+Useful targets
+--------------
+
+| Target                | Description                                   |
+| --------------------- | --------------------------------------------- |
+| `make up`             | Start the stack in the background             |
+| `make down`           | Stop and remove the stack                     |
+| `make logs`           | Follow container logs                         |
+| `make shell`          | Open a shell inside the app container         |
+| `make install`        | Run `composer install` inside the container   |
+| `make migrate`        | Run Doctrine migrations                       |
+| `make compile-assets` | Compile the asset map for prod                |
+
+Anything else you would normally run directly goes through
+`docker compose exec app …`, for example:
+
+```bash
+docker compose exec app bin/console doctrine:schema:validate
+docker compose exec app composer require some/package
+```

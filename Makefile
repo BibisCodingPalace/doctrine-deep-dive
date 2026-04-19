@@ -1,19 +1,50 @@
-.PHONY: cleanup-tests prepare-tests run-all-tests run-stateless-tests compile-assets
+DOCKER_COMPOSE ?= docker compose
+EXEC_APP       = $(DOCKER_COMPOSE) exec app
+PHP            = $(EXEC_APP) php
+CONSOLE        = $(PHP) bin/console
+COMPOSER       = $(EXEC_APP) composer
+
+.PHONY: build up down restart logs shell install migrate \
+        cleanup-tests prepare-tests run-all-tests run-stateless-tests test \
+        compile-assets
+
+build: ## Build the application image
+	$(DOCKER_COMPOSE) build
+
+up: ## Start the stack in the background
+	$(DOCKER_COMPOSE) up -d
+
+down: ## Stop and remove the stack
+	$(DOCKER_COMPOSE) down
+
+restart: down up ## Restart the stack
+
+logs: ## Follow container logs
+	$(DOCKER_COMPOSE) logs -f
+
+shell: ## Open a shell inside the app container
+	$(EXEC_APP) bash
+
+install: ## Install PHP dependencies inside the container
+	$(COMPOSER) install
+
+migrate: ## Run Doctrine migrations
+	$(CONSOLE) doctrine:migrations:migrate --no-interaction --allow-no-migration
 
 cleanup-tests: ## Remove test database
-	php bin/console doctrine:database:drop --env=test --if-exists --force
+	$(CONSOLE) doctrine:database:drop --env=test --if-exists --force
 
 prepare-tests: ## Create test database
-	php bin/console doctrine:database:create --env=test --if-not-exists
-	php bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration
+	$(CONSOLE) doctrine:database:create --env=test --if-not-exists
+	$(CONSOLE) doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration
 
 run-all-tests: ## Run full PHPUnit Test Suite
-	php bin/phpunit --testdox
+	$(PHP) bin/phpunit --testdox
 
 run-stateless-tests: ## Run only tests, which do not require a database reset
-	php bin/phpunit --testdox --exclude-group stateful
+	$(PHP) bin/phpunit --testdox --exclude-group stateful
 
 test: cleanup-tests prepare-tests run-all-tests
 
-compile-assets:
-	php bin/console asset-map:compile --env=prod
+compile-assets: ## Compile the asset map for prod
+	$(CONSOLE) asset-map:compile --env=prod
