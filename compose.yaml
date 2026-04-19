@@ -3,11 +3,14 @@ services:
   app:
     build: ./docker/app
     ports:
-      - "127.0.0.1:8000:8000" # Local PHP server
+      - "127.0.0.1:8000:8000"
     volumes:
       - .:/app
+    environment:
+      SERVER_NAME: ":8000"
     depends_on:
-      - database
+      database:
+        condition: service_healthy
 ###> doctrine/doctrine-bundle ###
   database:
     image: postgres:${POSTGRES_VERSION:-16}-alpine
