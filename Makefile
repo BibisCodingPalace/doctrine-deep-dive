@@ -15,7 +15,7 @@ up: ## Start the stack in the background
 	$(DOCKER_COMPOSE) up -d
 
 down: ## Stop and remove the stack
-	$(DOCKER_COMPOSE) down
+	$(DOCKER_COMPOSE) down --remove-orphans
 
 restart: down up ## Restart the stack
 
