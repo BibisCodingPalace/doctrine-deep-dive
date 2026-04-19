@@ -18,6 +18,6 @@ class TaskListControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('h1', 'My Todo List');
         self::assertSelectorTextContains('button', 'Create a list');
-        self::assertSelectorTextContains('a.active', 'All lists');
+        self::assertSelectorTextContains('a.active', 'All Lists');
     }
 }
