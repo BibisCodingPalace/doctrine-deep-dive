@@ -3,14 +3,12 @@
 namespace App\Tests\Security\Signup;
 
 use App\Security\Signup\RequestSignup;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-/**
- * @group medium
- * @group unit
- */
+#[Group('unit')]
 final class RequestSignupTest extends TestCase
 {
     private ValidatorInterface $validator;

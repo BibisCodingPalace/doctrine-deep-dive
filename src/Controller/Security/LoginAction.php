@@ -17,7 +17,7 @@ class LoginAction
     ) {}
 
     #[Route(path: '/login', name: 'login', methods: ['GET', 'POST'])]
-    public function __invoke()
+    public function __invoke(): Response
     {
         return new Response($this->templating->render('security/login.html.twig', [
             'error' => $this->authUtils->getLastAuthenticationError(),

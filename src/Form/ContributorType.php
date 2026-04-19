@@ -20,20 +20,20 @@ class ContributorType extends AbstractType
         $this->tokenStorage = $tokenStorage;
     }
 
-    public function buildForm(FormBuilderInterface $builder, array $options)
+    public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $taskList = $options['list'];
         if (!$taskList instanceof TaskList) {
-            throw \RuntimeException('The contributor type requires an assocaited task list.');
+            throw new \RuntimeException('The contributor type requires an associated task list.');
         }
 
         $token = $this->tokenStorage->getToken();
         if (null === $token) {
-            throw \RuntimeException('The contributor type can only be used by logged in users.');
+            throw new \RuntimeException('The contributor type can only be used by logged in users.');
         }
         $user = $token->getUser();
         if (!$user instanceof User) {
-            throw \RuntimeException('The contributor type can only be used by logged in users.');
+            throw new \RuntimeException('The contributor type can only be used by logged in users.');
         }
 
         $builder
@@ -53,7 +53,7 @@ class ContributorType extends AbstractType
             ]);
     }
 
-    public function configureOptions(OptionsResolver $resolver)
+    public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setRequired('list');
     }
