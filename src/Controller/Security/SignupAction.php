@@ -27,10 +27,10 @@ final readonly class SignupAction
     ) {}
 
     #[Route(path: '/signup', name: 'signup', methods: ['GET', 'POST'])]
-    public function __invoke(
-        Request $request,
-    ): Response {
-        if ($this->userTokenStorage->getToken() !== null) {
+    public function __invoke(Request $request): Response
+    {
+        $token = $this->userTokenStorage->getToken();
+        if ($token !== null && $token->getUser() instanceof User) {
             return new RedirectResponse($this->urlGenerator->generate('tasklist_list'));
         }
         

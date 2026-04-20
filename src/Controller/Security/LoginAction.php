@@ -24,7 +24,8 @@ class LoginAction
     #[Route(path: '/login', name: 'login', methods: ['GET', 'POST'])]
     public function __invoke(): Response
     {
-        if ($this->userTokenStorage->getToken() !== null) {
+        $token = $this->userTokenStorage->getToken();
+        if ($token !== null && $token->getUser() instanceof User) {
             return new RedirectResponse($this->urlGenerator->generate('tasklist_list'));
         }
 
