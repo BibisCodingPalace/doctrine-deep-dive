@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\AsController;
@@ -10,7 +11,7 @@ use Twig\Environment;
 
 #[AsController()]
 #[Route(name: 'tasklist_')]
-class TaskListController
+class TaskListController extends AbstractController
 {
     private readonly array $dummyData;
 
@@ -127,25 +128,19 @@ class TaskListController
     #[Route(path: "/add/{id}", name: "add", methods: ['POST'])]
     public function add(Request $request, int $id): Response
     {
-        // TODO
+        return $this->redirectToRoute('tasklist_show', ['id' => $id]);
     }
 
     #[Route(path: "/update/{id}", name: "item_update", methods: ['POST'])]
     public function update(Request $request, int $id): Response
     {
-        // TODO
-    }
-
-    #[Route(path: "/edit/{id}", name: "edit", methods: ['POST'])]
-    public function edit(Request $request, int $id): Response
-    {
-        // TODO
+        return $this->redirectToRoute('tasklist_show', ['id' => $id]);
     }
 
     #[Route(path: "/archive/{id}", name: "archive", methods: ['POST'])]
     public function archive(Request $request, int $id): Response
     {
-        // TODO
+        return $this->redirectToRoute('tasklist_show', ['id' => $id]);
     }
 
     #[Route(path: "/contributors/{id}", name: "contributors", methods: ['GET', 'POST'])]
@@ -156,22 +151,15 @@ class TaskListController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // TODO
 
-            $newContributor = $form->get('contributor')->getData();
-
-            $taskList->addContributor($newContributor);
-
-            $entityManager = $managerRegistry->getManagerForClass(Task::class);
-            $entityManager->flush();
-            $entityManager->clear();
-
-            return $this->redirectToRoute('tasklist_show', ['id' => $taskList->getId()]);
+            return $this->redirectToRoute('tasklist_show', ['id' => $id]);
         }
 
         return new Response($this->templating->render(
             'tasks/contributors.html.twig',
             [
-                'task_list' => $this->dummyData[$id],
+                'task_list' => $taskList,
                 'form' => $form->createView(),
             ]
         ));
