@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Twig\Environment;
 
 #[AsController()]
@@ -21,6 +22,7 @@ final readonly class SignupAction
         private Environment $templating,
         private FormFactoryInterface $formFactory,
         private UrlGeneratorInterface $urlGenerator,
+        private TokenStorageInterface $userTokenStorage,
         private UserSignup $signup,
     ) {}
 
@@ -28,7 +30,10 @@ final readonly class SignupAction
     public function __invoke(
         Request $request,
     ): Response {
-
+        if ($this->userTokenStorage->getToken() !== null) {
+            return new RedirectResponse($this->urlGenerator->generate('tasklist_list'));
+        }
+        
         $signupRequest = new RequestSignup();
         $form = $this->formFactory->create(RequestSignupFormType::class, $signupRequest);
         $form->handleRequest($request);
