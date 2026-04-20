@@ -10,6 +10,7 @@ use App\Entity\User;
 use App\Form\ContributorType;
 use App\Repository\TaskListRepository;
 use App\Repository\TaskRepository;
+use App\TaskList\TaskListService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -24,13 +25,37 @@ class TaskListController extends AbstractController
     public function __construct(
         private readonly TaskListRepository $taskListRepository,
         private readonly TaskRepository $taskRepository,
+        private readonly TaskListService $taskListService,
     ) {
     }
 
-    #[Route(path: '/', name: 'list', methods: ['GET'])]
+    #[Route(path: '/', name: 'list', methods: ['GET', 'POST'])]
     public function index(Request $request): Response
     {
         $user = $this->getUser();
+
+        if ($request->isMethod('POST')) {
+            if (!$user instanceof User) {
+                return $this->redirectToRoute('login');
+            }
+
+            try {
+                $taskList = $this->taskListService->createTaskList($user, (string) $request->request->get('name', ''));
+
+                return $this->redirectToRoute('tasklist_show', ['id' => $taskList->getId()]);
+            } catch (\InvalidArgumentException $e) {
+                $this->addFlash('danger', $e->getMessage());
+            }
+
+            $query = [];
+            $filter = $request->query->get('filter');
+            if ($filter !== null && $filter !== '') {
+                $query['filter'] = $filter;
+            }
+
+            return $this->redirectToRoute('tasklist_list', $query);
+        }
+
         if (!$user instanceof User) {
             return $this->render('tasks/index.html.twig', [
                 'task_lists' => [],
@@ -76,9 +101,18 @@ class TaskListController extends AbstractController
 
     #[Route(path: '/add/{id}', name: 'add', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function add(TaskList $taskList): Response
+    public function add(Request $request, TaskList $taskList): Response
     {
-        $this->assertUserMayViewTaskList($taskList);
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
+        try {
+            $this->taskListService->addTask($user, $taskList, (string) $request->request->get('summary', ''));
+        } catch (\InvalidArgumentException $e) {
+            $this->addFlash('danger', $e->getMessage());
+        }
 
         return $this->redirectToRoute('tasklist_show', ['id' => $taskList->getId()]);
     }
@@ -87,10 +121,22 @@ class TaskListController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function update(int $id): Response
     {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
+
         $task = $this->taskRepository->find($id);
         if (!$task instanceof Task) {
             throw $this->createNotFoundException('Task not found.');
         }
+
+        try {
+            $this->taskListService->updateTask($user, $task);
+        } catch (\RuntimeException $e) {
+            $this->addFlash('danger', $e->getMessage());
+        }
+
         return $this->redirectToRoute('tasklist_show', ['id' => $task->getList()->getId()]);
     }
 
@@ -98,6 +144,13 @@ class TaskListController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function archive(TaskList $taskList): Response
     {
+        $taskList = $entityManager->find(TaskList::class);
+
+        $taskList->archive();
+
+        $entityManager->flush();
+        $entityManager->clear();
+
         return $this->redirectToRoute('tasklist_show', ['id' => $taskList->getId()]);
     }
 
@@ -109,7 +162,21 @@ class TaskListController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // TODO
+            $user = $this->getUser();
+            if (!$user instanceof User) {
+                throw $this->createAccessDeniedException();
+            }
+
+            $contributor = $form->get('contributor')->getData();
+            if (!$contributor instanceof User) {
+                $this->addFlash('danger', 'Please select a user.');
+            } else {
+                try {
+                    $this->taskListService->addContributor($user, $taskList, $contributor);
+                } catch (\InvalidArgumentException $e) {
+                    $this->addFlash('danger', $e->getMessage());
+                }
+            }
 
             return $this->redirectToRoute('tasklist_show', ['id' => $taskList->getId()]);
         }
