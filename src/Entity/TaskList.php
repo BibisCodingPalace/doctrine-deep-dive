@@ -32,7 +32,7 @@ class TaskList
     private string $title;
 
     #[Column(type: 'boolean')]
-    private false $archived;
+    private bool $archived = false;
 
     #[OneToMany(targetEntity: Task::class, mappedBy: "taskList", cascade: ['persist'])]
     private $items;
@@ -44,14 +44,13 @@ class TaskList
     private DateTimeImmutable $created;
 
     #[Column(type: "datetime_immutable", nullable: true)]
-    private DateTimeImmutable $lastUpdated;
+    private ?DateTimeImmutable $lastUpdated = null;
 
     public function __construct(User $owner, string $title)
     {
         $this->owner = $owner;
         $this->title = $title;
 
-        $this->archived = false;
         $this->created = new DateTimeImmutable();
         $this->items = new ArrayCollection();
         $this->contributors = new ArrayCollection();
@@ -92,6 +91,12 @@ class TaskList
     public function isArchived(): bool
     {
         return $this->archived === true;
+    }
+
+    public function archive(): void
+    {
+        $this->archived = true;
+        $this->lastUpdated = new DateTimeImmutable();
     }
 
     public function getItems(): array
