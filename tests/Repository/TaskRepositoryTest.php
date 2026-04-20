@@ -18,7 +18,7 @@ class TaskRepositoryTest extends AbstractRepositoryKernelTestCase
 
         $tasks = $repository->findTasksCreatedToday();
 
-        self::assertCount(6, $tasks);
+        self::assertCount(6, $tasks, 'Expected six tasks from AppFixtures (2+1+1+2 items).');
         foreach ($tasks as $task) {
             self::assertInstanceOf(Task::class, $task);
         }

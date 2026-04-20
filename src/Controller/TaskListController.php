@@ -1,167 +1,172 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Controller;
 
+use App\Entity\Task;
+use App\Entity\TaskList;
+use App\Entity\User;
+use App\Form\ContributorType;
+use App\Repository\TaskListRepository;
+use App\Repository\TaskRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\AsController;
 use Symfony\Component\Routing\Attribute\Route;
-use Twig\Environment;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[AsController()]
 #[Route(name: 'tasklist_')]
 class TaskListController extends AbstractController
 {
-    private readonly array $dummyData;
-
     public function __construct(
-        private Environment $templating,
+        private readonly TaskListRepository $taskListRepository,
+        private readonly TaskRepository $taskRepository,
     ) {
-        $this->dummyData = [
-            [
-                'id' => 0,
-                'owner' => ['email' => 'drumann@gmail.com'],
-                'contributors' => [],
-                'title' => 'Empty test list',
-                'lastUpdatedOn' => new \DateTimeImmutable(),
-                'createdOn' => new \DateTimeImmutable(),
-                'items' => [],
-                'archived' => false,
-            ],
-            [
-                'id' => 0,
-                'owner' => ['email' => 'drumann@gmail.com'],
-                'contributors' => [],
-                'title' => 'Archived test list',
-                'lastUpdatedOn' => new \DateTimeImmutable(),
-                'createdOn' => new \DateTimeImmutable(),
-                'items' => [],
-                'archived' => true,
-            ],
-            [
-                'id' => 1,
-                'owner' => ['email' => 'drumann@gmail.com'],
-                'contributors' => [],
-                'title' => 'Test list with 1 open item',
-                'lastUpdatedOn' => new \DateTimeImmutable(),
-                'createdOn' => new \DateTimeImmutable(),
-                'items' => [
-                    [
-                        'id' => 1,
-                        'summary' => 'Replace with actual data',
-                        'done' => false,
-                    ]
-                ],
-                'archived' => false,
-            ],
-            [
-                'id' => 1,
-                'owner' => ['email' => 'drumann@gmail.com'],
-                'contributors' => [],
-                'title' => 'Test list with open and closed item',
-                'lastUpdatedOn' => new \DateTimeImmutable(),
-                'createdOn' => new \DateTimeImmutable(),
-                'items' => [
-                    [
-                        'id' => 2,
-                        'summary' => 'Create dummy data',
-                        'done' => true,
-                    ],
-                    [
-                        'id' => 3,
-                        'summary' => 'Replace with actual data',
-                        'done' => false,
-                    ]
-                ],
-                'archived' => false,
-            ]
-        ];
     }
 
-    #[Route(path: "/", name: "list", methods: ['GET'])]
+    #[Route(path: '/', name: 'list', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        switch ($request->query->get('filter')) {
-            case 'own':
-            case 'contributing':
-            case 'active':
-            case 'archived':
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return $this->render('tasks/index.html.twig', [
+                'task_lists' => [],
+            ]);
         }
 
-        return new Response($this->templating->render(
-            'tasks/index.html.twig',
-            [
-                'task_lists' => $this->dummyData,
-            ]
+        $filter = $request->query->get('filter');
+        $taskLists = match ($filter) {
+            'own' => $this->taskListRepository->findListsOwnedBy($user),
+            'contributing' => $this->taskListRepository->findListsContributedBy($user),
+            'active' => $this->taskListRepository->findActive($user),
+            'archived' => $this->taskListRepository->findArchived($user),
+            default => $this->mergeOwnedAndContributedLists($user),
+        };
+
+        return $this->render('tasks/index.html.twig', [
+            'task_lists' => $taskLists,
+        ]);
+    }
+
+    #[Route(path: '/show/{id}', name: 'show', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function show(TaskList $taskList): Response
+    {
+        $this->assertUserMayViewTaskList($taskList);
+
+        return $this->render('tasks/show.html.twig', [
+            'task_list' => $taskList,
+        ]);
+    }
+
+    #[Route(path: '/recent/{id}', name: 'new', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function recent(TaskList $taskList): Response
+    {
+        $this->assertUserMayViewTaskList($taskList);
+
+        $tasks = array_values(array_filter(
+            $this->taskRepository->findTasksCreatedToday(),
+            static fn (Task $task) => $task->getList()->getId() === $taskList->getId(),
         ));
+
+        return $this->render('tasks/recent.html.twig', [
+            'tasks' => $tasks,
+        ]);
     }
 
-    #[Route(path: "/show/{id}", name: "show", methods: ['GET'])]
-    public function show(Request $request, int $id): Response
+    #[Route(path: '/add/{id}', name: 'add', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function add(TaskList $taskList): Response
     {
-        return new Response($this->templating->render(
-            'tasks/show.html.twig',
-            [
-                'task_list' => $this->dummyData[$id],
-            ]
-        ));
+        $this->assertUserMayViewTaskList($taskList);
+
+        return $this->redirectToRoute('tasklist_show', ['id' => $taskList->getId()]);
     }
 
-    #[Route(path: "/recent/{id}", name: "new", methods: ['GET'])]
-    public function recent(Request $request, int $id): Response
+    #[Route(path: '/update/{id}', name: 'item_update', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function update(int $id): Response
     {
-        return new Response($this->templating->render(
-            'tasks/recent.html.twig',
-            [
-                'tasks' => [
-                    [
-                        'id' => 3,
-                        'summary' => 'Replace with actual data',
-                        'done' => false,
-                    ],
-                ],
-            ]
-        ));
+        $task = $this->taskRepository->find($id);
+        if (!$task instanceof Task) {
+            throw $this->createNotFoundException('Task not found.');
+        }
+
+        $this->assertUserMayViewTaskList($task->getList());
+
+        return $this->redirectToRoute('tasklist_show', ['id' => $task->getList()->getId()]);
     }
 
-    #[Route(path: "/add/{id}", name: "add", methods: ['POST'])]
-    public function add(Request $request, int $id): Response
+    #[Route(path: '/archive/{id}', name: 'archive', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function archive(TaskList $taskList): Response
     {
-        return $this->redirectToRoute('tasklist_show', ['id' => $id]);
+        $this->assertUserMayViewTaskList($taskList);
+
+        return $this->redirectToRoute('tasklist_show', ['id' => $taskList->getId()]);
     }
 
-    #[Route(path: "/update/{id}", name: "item_update", methods: ['POST'])]
-    public function update(Request $request, int $id): Response
+    #[Route(path: '/contributors/{id}', name: 'contributors', methods: ['GET', 'POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function contributor(Request $request, TaskList $taskList): Response
     {
-        return $this->redirectToRoute('tasklist_show', ['id' => $id]);
-    }
+        $this->assertUserMayViewTaskList($taskList);
 
-    #[Route(path: "/archive/{id}", name: "archive", methods: ['POST'])]
-    public function archive(Request $request, int $id): Response
-    {
-        return $this->redirectToRoute('tasklist_show', ['id' => $id]);
-    }
-
-    #[Route(path: "/contributors/{id}", name: "contributors", methods: ['GET', 'POST'])]
-    public function contributor(Request $request, int $id): Response
-    {
-        $taskList = new TaskList();
         $form = $this->createForm(ContributorType::class, null, ['list' => $taskList]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
             // TODO
 
-            return $this->redirectToRoute('tasklist_show', ['id' => $id]);
+            return $this->redirectToRoute('tasklist_show', ['id' => $taskList->getId()]);
         }
 
-        return new Response($this->templating->render(
-            'tasks/contributors.html.twig',
-            [
-                'task_list' => $taskList,
-                'form' => $form->createView(),
-            ]
-        ));
+        return $this->render('tasks/contributors.html.twig', [
+            'task_list' => $taskList,
+            'form' => $form->createView(),
+        ]);
+    }
+
+    /**
+     * @return TaskList[]
+     */
+    private function mergeOwnedAndContributedLists(User $user): array
+    {
+        $byId = [];
+        foreach ($this->taskListRepository->findListsOwnedBy($user) as $list) {
+            $byId[$list->getId()] = $list;
+        }
+        foreach ($this->taskListRepository->findListsContributedBy($user) as $list) {
+            $byId[$list->getId()] = $list;
+        }
+
+        return array_values($byId);
+    }
+
+    private function userMayViewTaskList(User $user, TaskList $taskList): bool
+    {
+        if ($user->getId() === $taskList->getOwner()->getId()) {
+            return true;
+        }
+
+        foreach ($taskList->getContributors() as $contributor) {
+            if ($contributor->getId() === $user->getId()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function assertUserMayViewTaskList(TaskList $taskList): void
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User || !$this->userMayViewTaskList($user, $taskList)) {
+            throw $this->createAccessDeniedException();
+        }
     }
 }
