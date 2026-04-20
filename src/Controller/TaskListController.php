@@ -43,7 +43,7 @@ class TaskListController extends AbstractController
             'contributing' => $this->taskListRepository->findListsContributedBy($user),
             'active' => $this->taskListRepository->findActive($user),
             'archived' => $this->taskListRepository->findArchived($user),
-            default => $this->mergeOwnedAndContributedLists($user),
+            default => $this->taskListRepository->findAll()
         };
 
         return $this->render('tasks/index.html.twig', [
@@ -55,8 +55,6 @@ class TaskListController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function show(TaskList $taskList): Response
     {
-        $this->assertUserMayViewTaskList($taskList);
-
         return $this->render('tasks/show.html.twig', [
             'task_list' => $taskList,
         ]);
@@ -66,8 +64,6 @@ class TaskListController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function recent(TaskList $taskList): Response
     {
-        $this->assertUserMayViewTaskList($taskList);
-
         $tasks = array_values(array_filter(
             $this->taskRepository->findTasksCreatedToday(),
             static fn (Task $task) => $task->getList()->getId() === $taskList->getId(),
@@ -95,9 +91,6 @@ class TaskListController extends AbstractController
         if (!$task instanceof Task) {
             throw $this->createNotFoundException('Task not found.');
         }
-
-        $this->assertUserMayViewTaskList($task->getList());
-
         return $this->redirectToRoute('tasklist_show', ['id' => $task->getList()->getId()]);
     }
 
@@ -105,8 +98,6 @@ class TaskListController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function archive(TaskList $taskList): Response
     {
-        $this->assertUserMayViewTaskList($taskList);
-
         return $this->redirectToRoute('tasklist_show', ['id' => $taskList->getId()]);
     }
 
@@ -114,8 +105,6 @@ class TaskListController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function contributor(Request $request, TaskList $taskList): Response
     {
-        $this->assertUserMayViewTaskList($taskList);
-
         $form = $this->createForm(ContributorType::class, null, ['list' => $taskList]);
         $form->handleRequest($request);
 
@@ -129,44 +118,5 @@ class TaskListController extends AbstractController
             'task_list' => $taskList,
             'form' => $form->createView(),
         ]);
-    }
-
-    /**
-     * @return TaskList[]
-     */
-    private function mergeOwnedAndContributedLists(User $user): array
-    {
-        $byId = [];
-        foreach ($this->taskListRepository->findListsOwnedBy($user) as $list) {
-            $byId[$list->getId()] = $list;
-        }
-        foreach ($this->taskListRepository->findListsContributedBy($user) as $list) {
-            $byId[$list->getId()] = $list;
-        }
-
-        return array_values($byId);
-    }
-
-    private function userMayViewTaskList(User $user, TaskList $taskList): bool
-    {
-        if ($user->getId() === $taskList->getOwner()->getId()) {
-            return true;
-        }
-
-        foreach ($taskList->getContributors() as $contributor) {
-            if ($contributor->getId() === $user->getId()) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function assertUserMayViewTaskList(TaskList $taskList): void
-    {
-        $user = $this->getUser();
-        if (!$user instanceof User || !$this->userMayViewTaskList($user, $taskList)) {
-            throw $this->createAccessDeniedException();
-        }
     }
 }
