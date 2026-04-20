@@ -2,12 +2,10 @@
 
 namespace App\Tests\Controller;
 
+use PHPUnit\Framework\Attributes\Group;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
-/**
- * @group large
- * @group smoke
- */
+#[Group('smoke')]
 class TaskListControllerTest extends WebTestCase
 {
     public function testListIsAccessible(): void
