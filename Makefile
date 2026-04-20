@@ -33,6 +33,9 @@ install: ## Install PHP dependencies inside the container
 migrate: ## Run Doctrine migrations
 	$(CONSOLE) doctrine:migrations:migrate --no-interaction --allow-no-migration
 
+fixtures: ## Load Doctrine fixtures (purges DB)
+	$(CONSOLE) doctrine:fixtures:load --no-interaction
+
 cleanup-tests: ## Remove test database
 	$(CONSOLE) doctrine:database:drop --env=test --if-exists --force
 
