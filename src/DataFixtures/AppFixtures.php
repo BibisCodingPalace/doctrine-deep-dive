@@ -17,7 +17,7 @@ class AppFixtures extends Fixture
 
     public function load(ObjectManager $manager): void
     {
-        $user1 = new User('user2@example.com');
+        $user1 = new User('user1@example.com');
         $user1->replaceEncodedPassword(
             $this->passwordHasher->hashPassword($user1, 'user1'),
         );
