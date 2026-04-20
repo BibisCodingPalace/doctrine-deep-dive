@@ -144,6 +144,13 @@ class TaskListController extends AbstractController
     #[IsGranted('ROLE_USER')]
     public function archive(TaskList $taskList): Response
     {
+        $taskList = $entityManager->find(TaskList::class);
+
+        $taskList->archive();
+
+        $entityManager->flush();
+        $entityManager->clear();
+
         return $this->redirectToRoute('tasklist_show', ['id' => $taskList->getId()]);
     }
 
