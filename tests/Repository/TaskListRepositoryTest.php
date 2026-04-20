@@ -10,9 +10,12 @@ use App\Repository\TaskListRepository;
 use App\TaskList\SummarizedTaskList;
 use PHPUnit\Framework\Attributes\Group;
 
+/**
+ * Repository API against loaded AppFixtures; consistent data per test (DAMA transaction + trait load).
+ */
 #[Group('integration')]
 #[Group('stateful')]
-class TaskListRepositoryTest extends AbstractRepositoryKernelTestCase
+final class TaskListRepositoryTest extends AbstractRepositoryKernelTestCase
 {
     public function testFindListsOwnedByReturnsAllListsForOwner(): void
     {

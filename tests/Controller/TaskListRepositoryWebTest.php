@@ -7,26 +7,17 @@ namespace App\Tests\Controller;
 use App\DataFixtures\AppFixtures;
 use App\Entity\User;
 use App\Repository\TaskListRepository;
-use App\Tests\Support\ReloadsAppFixturesTrait;
+use App\Tests\AbstractWebFixtureTestCase;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\Attributes\Group;
-use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 #[Group('integration')]
 #[Group('stateful')]
-class TaskListRepositoryWebTest extends WebTestCase
+final class TaskListRepositoryWebTest extends AbstractWebFixtureTestCase
 {
-    use ReloadsAppFixturesTrait;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        static::reloadAppFixturesIntoDatabase();
-    }
-
     public function testIndexWithOwnFilterShowsFixtureLists(): void
     {
-        $client = static::createClient();
+        $client = static::getClient();
         $client->loginUser($this->fixtureUser(AppFixtures::USER1_EMAIL));
         $client->request('GET', '/?filter=own');
 
@@ -38,7 +29,7 @@ class TaskListRepositoryWebTest extends WebTestCase
 
     public function testContributingFilterShowsSharedList(): void
     {
-        $client = static::createClient();
+        $client = static::getClient();
         $client->loginUser($this->fixtureUser(AppFixtures::USER2_EMAIL));
         $client->request('GET', '/?filter=contributing');
 
@@ -50,7 +41,7 @@ class TaskListRepositoryWebTest extends WebTestCase
 
     public function testShowRendersListFromDatabase(): void
     {
-        $client = static::createClient();
+        $client = static::getClient();
         $user = $this->fixtureUser(AppFixtures::USER1_EMAIL);
         $client->loginUser($user);
         $listId = $this->ownedListIdByTitle($user, 'User 1 main list');
@@ -63,7 +54,7 @@ class TaskListRepositoryWebTest extends WebTestCase
 
     public function testRecentPageShowsTodaysTasksForList(): void
     {
-        $client = static::createClient();
+        $client = static::getClient();
         $user = $this->fixtureUser(AppFixtures::USER1_EMAIL);
         $client->loginUser($user);
         $listId = $this->ownedListIdByTitle($user, 'User 1 main list');
@@ -76,7 +67,7 @@ class TaskListRepositoryWebTest extends WebTestCase
 
     public function testShowRedirectsGuestsToLogin(): void
     {
-        $client = static::createClient();
+        $client = static::getClient();
         $listId = $this->ownedListIdByTitle(
             $this->fixtureUser(AppFixtures::USER1_EMAIL),
             'User 1 main list',

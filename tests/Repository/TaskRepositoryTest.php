@@ -8,9 +8,12 @@ use App\Entity\Task;
 use App\Repository\TaskRepository;
 use PHPUnit\Framework\Attributes\Group;
 
+/**
+ * Counts and expectations are based on {@see App\DataFixtures\AppFixtures}.
+ */
 #[Group('integration')]
 #[Group('stateful')]
-class TaskRepositoryTest extends AbstractRepositoryKernelTestCase
+final class TaskRepositoryTest extends AbstractRepositoryKernelTestCase
 {
     public function testFindTasksCreatedTodayReturnsAllFixtureTasks(): void
     {
