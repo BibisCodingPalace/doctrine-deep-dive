@@ -23,9 +23,6 @@ class TaskList
     #[Column(type: 'bigint', options: ['unsigned' => true])]
     private int|null $id;
 
-    #[Version]
-    #[Column(type: 'integer', options: ['unsigned' => true])]
-    private int $version;
 
     #[ManyToOne(targetEntity: User::class)]
     #[JoinColumn(nullable: false)]
