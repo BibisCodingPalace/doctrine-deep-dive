@@ -4,15 +4,22 @@ declare(strict_types=1);
 
 namespace App\EventListener;
 
+use App\Entity\Task;
 use App\Entity\TaskList;
 use Doctrine\Bundle\DoctrineBundle\Attribute\AsDoctrineListener;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Event\OnFlushEventArgs;
 use Doctrine\ORM\Events;
+use Psr\Log\LoggerInterface;
 
 #[AsDoctrineListener(event: Events::onFlush)]
 final class TaskListLastUpdatedListener
 {
+
+    public function __construct(private LoggerInterface $logger)
+    {
+    }
+
     public function onFlush(OnFlushEventArgs $args): void
     {
         $objectManager = $args->getObjectManager();
@@ -21,22 +28,13 @@ final class TaskListLastUpdatedListener
         }
 
         $unitOfWork = $objectManager->getUnitOfWork();
-        $class = $objectManager->getClassMetadata(TaskList::class);
+        foreach ($unitOfWork->getScheduledEntityInsertions() as $entity) {
 
-        foreach ($unitOfWork->getScheduledEntityUpdates() as $entity) {
-            if (!$entity instanceof TaskList) {
+            if (!$entity instanceof Task) {
                 continue;
             }
 
-            $changeSet = $unitOfWork->getEntityChangeSet($entity);
-            unset($changeSet['lastUpdated']);
-
-            if ($changeSet === []) {
-                continue;
-            }
-
-            $entity->touchLastUpdated();
-            $unitOfWork->recomputeSingleEntityChangeSet($class, $entity);
+            $this->logger->warning('NEW TASK!!!!!'.' '.$entity->getSummary());
         }
     }
 }
