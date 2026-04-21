@@ -60,6 +60,11 @@ class TaskList
     public function addItem(string $summary): void
     {
         $this->items->add(new Task($this, $summary));
+        $this->touchLastUpdated();
+    }
+
+    public function touchLastUpdated(): void
+    {
         $this->lastUpdated = new DateTimeImmutable();
     }
 
