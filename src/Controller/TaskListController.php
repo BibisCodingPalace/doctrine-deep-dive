@@ -11,6 +11,7 @@ use App\Form\ContributorType;
 use App\Repository\TaskListRepository;
 use App\Repository\TaskRepository;
 use App\TaskList\TaskListService;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -142,10 +143,8 @@ class TaskListController extends AbstractController
 
     #[Route(path: '/archive/{id}', name: 'archive', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function archive(TaskList $taskList): Response
+    public function archive(TaskList $taskList,EntityManagerInterface $entityManager): Response
     {
-        $taskList = $entityManager->find(TaskList::class);
-
         $taskList->archive();
 
         $entityManager->flush();
