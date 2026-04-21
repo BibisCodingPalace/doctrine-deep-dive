@@ -11,5 +11,6 @@ final class RequestSignup
     public string $email;
 
     #[Assert\NotBlank()]
+    #[Assert\PasswordStrength(minScore: Assert\PasswordStrength::STRENGTH_MEDIUM)]
     public string $plainPassword;
 }

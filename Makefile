@@ -46,6 +46,12 @@ prepare-tests: ## Create test database
 run-all-tests: ## Run full PHPUnit Test Suite
 	$(PHP) bin/phpunit --testdox
 
+run-repository-tests: prepare-tests ## PHPUnit: repository integration tests (kernel + DB)
+	$(PHP) bin/phpunit --testdox tests/Repository
+
+run-web-tests: prepare-tests ## PHPUnit: small WebTestCase tests (HTTP + DB)
+	$(PHP) bin/phpunit --testdox
+
 run-stateless-tests: ## Run only tests, which do not require a database reset
 	$(PHP) bin/phpunit --testdox --exclude-group stateful
 

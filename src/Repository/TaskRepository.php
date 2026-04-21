@@ -13,4 +13,18 @@ class TaskRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Task::class);
     }
+
+    public function findTasksCreatedToday()
+    {
+        $dql = <<<DQL
+SELECT task
+FROM App\Entity\Task task
+WHERE task.created BETWEEN :startdate AND :enddate
+DQL;
+
+        return $this->getEntityManager()->createQuery($dql)
+            ->setParameter('startdate', new DateTimeImmutable('today'))
+            ->setParameter('enddate', new DateTimeImmutable())
+            ->getResult();
+    }
 }
