@@ -13,11 +13,11 @@ final class SummarizedTaskList
 {
     public function __construct(
         public int $id,
-        public string $title,
+        public string $name,
         public bool $archived,
         public DateTimeImmutable $created,
-        public ?DateTimeImmutable $lastUpdated,
-        public int $itemCount,
+        public ?DateTimeImmutable $updated,
+        public int $taskCount,
     ) {
     }
 }

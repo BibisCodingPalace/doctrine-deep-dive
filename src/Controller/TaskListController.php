@@ -25,9 +25,10 @@ class TaskListController extends AbstractController
 {
     public function __construct(
         private readonly TaskListRepository $taskListRepository,
-        private readonly TaskRepository $taskRepository,
-        private readonly TaskListService $taskListService,
-    ) {
+        private readonly TaskRepository     $taskRepository,
+        private readonly TaskListService    $taskListService,
+    )
+    {
     }
 
     #[Route(path: '/', name: 'list', methods: ['GET', 'POST'])]
@@ -41,7 +42,7 @@ class TaskListController extends AbstractController
             }
 
             try {
-                $taskList = $this->taskListService->createTaskList($user, (string) $request->request->get('name', ''));
+                $taskList = $this->taskListService->createTaskList($user, (string)$request->request->get('name', ''));
 
                 return $this->redirectToRoute('tasklist_show', ['id' => $taskList->getId()]);
             } catch (\InvalidArgumentException $e) {
@@ -63,13 +64,24 @@ class TaskListController extends AbstractController
             ]);
         }
 
-        $filter = $request->query->get('filter');
-        $taskLists = match ($filter) {
-            'own' => $this->taskListRepository->findListsOwnedBy($user),
-            'contributing' => $this->taskListRepository->findListsContributedBy($user),
-            'active' => $this->taskListRepository->findActive($user),
-            'archived' => $this->taskListRepository->findArchived($user),
-            default => $this->taskListRepository->findAll()
+        switch ($request->query->get('filter')) {
+            case 'own':
+                $taskLists = $this->taskListRepository->findListsOwnedBy($user);
+                break;
+            case 'contributing':
+                $taskLists = $this->taskListRepository->findListsContributedBy($user);
+                break;
+            case 'active':
+                $taskLists = $this->taskListRepository->findActive($user);
+                break;
+            case 'archived':
+                $taskLists = $this->taskListRepository->findArchived($user);
+                break;
+            default:
+                return $this->render('tasks/index_summarized.html.twig', [
+                    'lists' => $this->taskListRepository->findSummarizedTaskListFor($user),
+                ]);
+
         };
 
         return $this->render('tasks/index.html.twig', [
@@ -92,7 +104,7 @@ class TaskListController extends AbstractController
     {
         $tasks = array_values(array_filter(
             $this->taskRepository->findTasksCreatedToday(),
-            static fn (Task $task) => $task->getList()->getId() === $taskList->getId(),
+            static fn(Task $task) => $task->getList()->getId() === $taskList->getId(),
         ));
 
         return $this->render('tasks/recent.html.twig', [
@@ -110,7 +122,7 @@ class TaskListController extends AbstractController
         }
 
         try {
-            $this->taskListService->addTask($user, $taskList, (string) $request->request->get('summary', ''));
+            $this->taskListService->addTask($user, $taskList, (string)$request->request->get('summary', ''));
         } catch (\InvalidArgumentException $e) {
             $this->addFlash('danger', $e->getMessage());
         }
@@ -143,7 +155,7 @@ class TaskListController extends AbstractController
 
     #[Route(path: '/archive/{id}', name: 'archive', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function archive(TaskList $taskList,EntityManagerInterface $entityManager): Response
+    public function archive(TaskList $taskList, EntityManagerInterface $entityManager): Response
     {
         $taskList->archive();
 

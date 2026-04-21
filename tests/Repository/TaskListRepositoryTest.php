@@ -82,17 +82,17 @@ class TaskListRepositoryTest extends AbstractRepositoryKernelTestCase
 
         self::assertCount(3, $summaries);
 
-        $byTitle = [];
+        $byName = [];
         foreach ($summaries as $row) {
             self::assertInstanceOf(SummarizedTaskList::class, $row);
-            $byTitle[$row->title] = $row;
+            $byName[$row->name] = $row;
         }
 
-        self::assertSame(2, $byTitle['User 1 main list']->itemCount);
-        self::assertSame(1, $byTitle['Shared list of user 1']->itemCount);
-        self::assertSame(1, $byTitle['Archived list of user 1']->itemCount);
-        self::assertTrue($byTitle['Archived list of user 1']->archived);
-        self::assertFalse($byTitle['User 1 main list']->archived);
+        self::assertSame(2, $byName['User 1 main list']->taskCount);
+        self::assertSame(1, $byName['Shared list of user 1']->taskCount);
+        self::assertSame(1, $byName['Archived list of user 1']->taskCount);
+        self::assertTrue($byName['Archived list of user 1']->archived);
+        self::assertFalse($byName['User 1 main list']->archived);
     }
 
     private function getUserByEmail(string $email): User
