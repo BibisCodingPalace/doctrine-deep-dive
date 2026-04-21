@@ -140,26 +140,16 @@ class TaskListController extends AbstractController
         return $this->redirectToRoute('tasklist_show', ['id' => $task->getList()->getId()]);
     }
 
-    #[Route(path: '/archive/{id}/{version}', name: 'archive', methods: ['POST'])]
+    #[Route(path: '/archive/{id}', name: 'archive', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
     public function archive(TaskList $taskList): Response
     {
-        try {
-            $taskList = $entityManager->find(TaskList::class, $id, LockMode::OPTIMISTIC, $version);
+        $taskList = $entityManager->find(TaskList::class);
 
-            $taskList->archive();
+        $taskList->archive();
 
-            $entityManager->flush();
-            $entityManager->clear();
-        } catch (OptimisticLockException $optimisticLockException) {
-            $this->addFlash('error',
-                'Could not update list! ' .
-                'Probably someone has changed it during your request. ' .
-                'Please check the current version and retry'
-            );
-
-            return $this->redirectToRoute('tasklist_show', ['id' => $id]);
-        }
+        $entityManager->flush();
+        $entityManager->clear();
 
         return $this->redirectToRoute('tasklist_show', ['id' => $taskList->getId()]);
     }
